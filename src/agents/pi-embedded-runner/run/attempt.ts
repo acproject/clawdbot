@@ -53,6 +53,7 @@ import { DEFAULT_CONTEXT_TOKENS } from "../../defaults.js";
 import { resolveOpenClawDocsPath } from "../../docs-path.js";
 import { isTimeoutError } from "../../failover-error.js";
 import { resolveImageSanitizationLimits } from "../../image-sanitization.js";
+import { isNonSecretApiKeyMarker } from "../../model-auth-markers.js";
 import { resolveModelAuthMode } from "../../model-auth.js";
 import { normalizeProviderId, resolveDefaultModelForAgent } from "../../model-selection.js";
 import { supportsModelTools } from "../../model-tool-support.js";
@@ -1951,6 +1952,64 @@ export async function runEmbeddedAttempt(
         params.thinkLevel,
         sessionAgentId,
       );
+
+      {
+        const configuredProviders = params.config?.models?.providers ?? {};
+        const normalizedProvider = normalizeProviderId(params.provider);
+        const configuredProvider =
+          configuredProviders[params.provider] ??
+          (normalizedProvider === params.provider
+            ? Object.entries(configuredProviders).find(
+                ([key]) => normalizeProviderId(key) === normalizedProvider,
+              )?.[1]
+            : (configuredProviders[normalizedProvider] ??
+              Object.entries(configuredProviders).find(
+                ([key]) => normalizeProviderId(key) === normalizedProvider,
+              )?.[1]));
+
+        const inner = activeSession.agent.streamFn;
+        activeSession.agent.streamFn = (model, context, options) => {
+          const apiKey = options?.apiKey;
+          if (
+            typeof apiKey !== "string" ||
+            !apiKey.trim() ||
+            isNonSecretApiKeyMarker(apiKey) ||
+            typeof model?.api !== "string" ||
+            !model.api.startsWith("openai-") ||
+            typeof configuredProvider?.baseUrl !== "string" ||
+            !configuredProvider.baseUrl.trim() ||
+            typeof configuredProvider.api !== "string" ||
+            !configuredProvider.api.startsWith("openai-")
+          ) {
+            return inner(model, context, options);
+          }
+
+          const originalHeaders =
+            options?.headers &&
+            typeof options.headers === "object" &&
+            !Array.isArray(options.headers)
+              ? options.headers
+              : {};
+          const hasHeader = (name: string) =>
+            Object.keys(originalHeaders).some((key) => key.toLowerCase() === name.toLowerCase());
+          if (hasHeader("api-key") && hasHeader("authorization")) {
+            return inner(model, context, options);
+          }
+
+          const headers: Record<string, string> = { ...originalHeaders };
+          if (!hasHeader("api-key")) {
+            headers["api-key"] = apiKey.trim();
+          }
+          if (!hasHeader("authorization")) {
+            headers.Authorization = `Bearer ${apiKey.trim()}`;
+          }
+
+          return inner(model, context, {
+            ...options,
+            headers,
+          });
+        };
+      }
 
       if (cacheTrace) {
         cacheTrace.recordStage("session:loaded", {

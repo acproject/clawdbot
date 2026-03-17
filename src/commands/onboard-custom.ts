@@ -229,6 +229,7 @@ function buildOpenAiHeaders(apiKey: string) {
   const headers: Record<string, string> = {};
   if (apiKey) {
     headers.Authorization = `Bearer ${apiKey}`;
+    headers["api-key"] = apiKey;
   }
   return headers;
 }
