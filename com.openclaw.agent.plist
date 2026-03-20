@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+"http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+
+    <!-- 服务名称 -->
+    <key>Label</key>
+    <string>com.openclaw.agent</string>
+
+    <!-- 启动脚本 -->
+    <key>ProgramArguments</key>
+    <array>
+      <string>/bin/bash</string>
+      <string>/Users/ken/Downloads/clawdbot/start_openclaw.sh</string>
+    </array>
+
+    <!-- 开机自动运行 -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- 崩溃自动重启（核心） -->
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- 工作目录 -->
+    <key>WorkingDirectory</key>
+    <string>/Users/ken/Downloads/clawdbot</string>
+
+    <!-- 日志 -->
+    <key>StandardOutPath</key>
+    <string>/Users/ken/Downloads/clawdbot/logs/out.log</string>      <!-- /Users/ken/openclaw/ -->
+
+    <key>StandardErrorPath</key>
+    <string>/Users/ken/Downloads/clawdbot/logs/error.log</string>
+
+    <!-- 限制重启频率（防止疯狂 crash） -->
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <!-- 只在失败时重启（更优雅） -->
+    <key>KeepAlive</key>
+    <dict>
+      <key>SuccessfulExit</key>
+      <false/>
+    </dict>
+
+    <!-- 环境变量（很关键！） -->
+    <key>EnvironmentVariables</key>
+    <dict>
+      <key>PATH</key>
+      <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
+    </dict>
+
+  </dict>
+</plist>
