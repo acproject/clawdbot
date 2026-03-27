@@ -1,0 +1,9 @@
+{
+  "id": "agent_channel",
+  "channels": ["agent_channel"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}
